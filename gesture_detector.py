@@ -62,13 +62,10 @@ class GestureDetector:
         return GestureResult(gesture, index_tip, palm_center, delta_x, delta_y, velocity, hand_landmarks)
 
     def _is_open_palm(self, landmarks) -> bool:
-        """Detect all 5 fingers extended."""
+        """Detect all 4 main fingers extended."""
         finger_pairs = [(8, 6), (12, 10), (16, 14), (20, 18)]
         fingers_up = all(landmarks[tip].y < landmarks[pip].y for tip, pip in finger_pairs)
-        # Thumb: check x-axis (for left hand, x goes left to right, we need to be careful; MediaPipe generally maps x increasing to the right
-        # Wait, the hands are mirrored depending on camera, but normally thumb is out.
-        thumb_up = landmarks[4].x < landmarks[3].x
-        return fingers_up and thumb_up
+        return fingers_up
 
     def _classify_gesture(self, landmarks, delta_x, delta_y, velocity) -> str:
         """Determine gesture based on hand landmarks."""

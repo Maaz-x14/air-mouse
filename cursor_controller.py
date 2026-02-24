@@ -24,14 +24,14 @@ class CursorController:
         self.first_move = True
         
         self.last_click_time = 0.0
-        self.debounce_time = 0.3  # 300ms debounce
+        self.debounce_time = 3.0  # 3 seconds debounce
         
         # for scroll
         self.prev_scroll_y_norm: Optional[float] = None
         
     def move(self, index_tip_x: float, index_tip_y: float):
         """Move cursor based on normalized index tip coordinate."""
-        target_x = int((1 - index_tip_x) * self.screen_width)
+        target_x = int(index_tip_x * self.screen_width)
         target_y = int(index_tip_y * self.screen_height)
         
         if self.first_move:
@@ -70,7 +70,7 @@ class CursorController:
         delta_y = index_tip_y - self.prev_scroll_y_norm
         
         # Ticking threshold to avoid micro scrolls
-        if abs(delta_y) > 0.02:
+        if abs(delta_y) > 0.005:  # lowered threshold for smoother response
             try:
                 if delta_y < 0:
                     # Finger moved up -> scroll up

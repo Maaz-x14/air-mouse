@@ -23,7 +23,7 @@ Press `q` on the open window or `Ctrl+C` in the terminal to exit.
 
 ## Gestures
 
-| Gesture | Action |
+| Gesture | Action | 
 |---------|--------|
 | Index finger pointing up | Move cursor |
 | Pinch thumb & index finger | Left click |
