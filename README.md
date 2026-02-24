@@ -29,9 +29,17 @@ Press `q` on the open window or `Ctrl+C` in the terminal to exit.
 | Pinch thumb & index finger | Left click |
 | Index & middle fingers up | Scroll |
 | Fist (all fingers closed) | Pause tracking |
+| Open palm + move up | Volume up |
+| Open palm + move down | Volume down |
+| Open palm + slow move right | Brightness up |
+| Open palm + slow move left | Brightness down |
+| Open palm + fast flick right | Next window (Alt+Tab) |
+| Open palm + fast flick left | Previous window (Alt+Shift+Tab) |
 
 ## Known Limitations
 
+- **brightnessctl**: Must be installed for hardware brightness control (`sudo apt install brightnessctl`). Without it, software brightness via `xrandr` is used (affects display gamma, not actual backlight).
+- **App Switching**: May behave differently on tiling window managers.
 - **Wayland**: PyAutoGUI may have bugs on default Wayland sessions (mouse control might be jittery or not work). If so, run with `DISPLAY=:0`.
 - Single hand only.
 - Smoothing can cause slight cursor lag; adjust `SMOOTHING_FACTOR` in `config.py` for faster response.

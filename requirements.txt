@@ -2,3 +2,5 @@ opencv-python>=4.8.0
 mediapipe>=0.10.0
 pyautogui>=0.9.54
 numpy>=1.24.0
+# Volume/brightness/app-switch use system CLI tools (pactl, brightnessctl, xrandr)
+# Install with: sudo apt install pulseaudio-utils brightnessctl

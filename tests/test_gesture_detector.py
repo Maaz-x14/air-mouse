@@ -35,7 +35,7 @@ def test_classify_gesture_move(detector):
     landmarks[13].y = 0.45
     landmarks[17].y = 0.45
     
-    gesture = detector._classify_gesture(landmarks)
+    gesture = detector._classify_gesture(landmarks, 0.0, 0.0, 0.0)
     assert gesture == "move"
 
 def test_classify_gesture_click(detector):
@@ -47,7 +47,7 @@ def test_classify_gesture_click(detector):
     landmarks[8].x = 0.51
     landmarks[8].y = 0.51 # distance ~0.014 < 0.05
     
-    gesture = detector._classify_gesture(landmarks)
+    gesture = detector._classify_gesture(landmarks, 0.0, 0.0, 0.0)
     assert gesture == "click"
 
 def test_classify_gesture_pause(detector):
@@ -63,5 +63,5 @@ def test_classify_gesture_pause(detector):
     landmarks[4].x = 0.1
     landmarks[8].x = 0.9
     
-    gesture = detector._classify_gesture(landmarks)
+    gesture = detector._classify_gesture(landmarks, 0.0, 0.0, 0.0)
     assert gesture == "pause"

@@ -7,9 +7,12 @@ import time
 
 from gesture_detector import GestureDetector
 from cursor_controller import CursorController
+from system_controller import SystemController
+from utils import draw_overlay
 from config import (
     CAMERA_INDEX, FRAME_WIDTH, FRAME_HEIGHT, 
-    SHOW_DEBUG_WINDOW, DRAW_LANDMARKS, SHOW_GESTURE_LABEL
+    SHOW_DEBUG_WINDOW, DRAW_LANDMARKS, SHOW_GESTURE_LABEL,
+    VOLUME_MOVEMENT_THRESHOLD, BRIGHTNESS_MOVEMENT_THRESHOLD
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -22,7 +25,7 @@ def main() -> None:
     then runs the main processing loop to read frames, detect hand
     landmarks, and control the OS cursor.
     """
-    logger.info("Starting Air Mouse application...")
+    logger.info("Starting Air Mouse v1.1 application...")
     
     cap = cv2.VideoCapture(CAMERA_INDEX)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
@@ -32,6 +35,7 @@ def main() -> None:
         logger.error(f"Could not open camera at index {CAMERA_INDEX}")
         sys.exit(1)
 
+    system_ctrl = SystemController()
     detector = GestureDetector()
     controller = CursorController()
     mp_drawing = mp.solutions.drawing_utils
@@ -39,8 +43,18 @@ def main() -> None:
     mp_hands = mp.solutions.hands
 
     # Variables for FPS calculation
-    prev_time = 0
+    prev_time = 0.0
     tracking_active = True
+    
+    # State variables
+    last_volume = -1
+    last_brightness = -1
+    app_switch_label = ""
+    app_switch_label_expiry = 0.0
+    
+    # Accums
+    volume_delta_accumulator = 0.0
+    brightness_delta_accumulator = 0.0
 
     try:
         while True:
@@ -60,8 +74,8 @@ def main() -> None:
             # Handle Gestures
             if result.gesture == "pause":
                 tracking_active = False
-            elif tracking_active == False and result.gesture != "none":
-                # Resume tracking when hand opens (any gesture other than pause/none)
+            elif tracking_active == False and result.gesture != "none" and result.gesture != "palm_idle":
+                # Resume tracking when hand begins doing anything other than pause/none/palm_idle
                 tracking_active = True
                 
             if tracking_active:
@@ -71,21 +85,34 @@ def main() -> None:
                     controller.click()
                 elif result.gesture == "scroll" and result.index_tip:
                     controller.scroll(result.index_tip[1])
-            
+                elif result.gesture == "volume":
+                    volume_delta_accumulator += result.delta_y
+                    if abs(volume_delta_accumulator) > VOLUME_MOVEMENT_THRESHOLD:
+                        direction = "down" if volume_delta_accumulator > 0 else "up"
+                        last_volume = system_ctrl.set_volume(direction)
+                        volume_delta_accumulator = 0.0
+                elif result.gesture == "brightness":
+                    brightness_delta_accumulator += result.delta_x
+                    if abs(brightness_delta_accumulator) > BRIGHTNESS_MOVEMENT_THRESHOLD:
+                        direction = "right" if brightness_delta_accumulator > 0 else "left"
+                        last_brightness = system_ctrl.set_brightness(direction)
+                        brightness_delta_accumulator = 0.0
+                elif result.gesture == "app_switch":
+                    direction = "next" if result.delta_x > 0 else "prev"
+                    triggered = system_ctrl.switch_app(direction)
+                    if triggered:
+                        app_switch_label = "→ App Switch" if direction == "next" else "← App Switch"
+                        app_switch_label_expiry = time.time() + 1.0
+
+            # Reset accumulators if gesture changes
+            if result.gesture != "volume":
+                volume_delta_accumulator = 0.0
+            if result.gesture != "brightness":
+                brightness_delta_accumulator = 0.0
+
             if SHOW_DEBUG_WINDOW:
                 display_frame = frame.copy()
                 
-                # Draw colored circle on index fingertip
-                if result.index_tip:
-                    # Map to screen dimensions for the opencv circle
-                    cam_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-                    cam_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                    cx = int(result.index_tip[0] * cam_w)
-                    cy = int(result.index_tip[1] * cam_h)
-                    
-                    color = (0, 255, 0) if tracking_active else (0, 0, 255)
-                    cv2.circle(display_frame, (cx, cy), 15, color, cv2.FILLED)
-
                 # Draw landmarks
                 if DRAW_LANDMARKS and result.landmarks:
                     mp_drawing.draw_landmarks(
@@ -100,14 +127,20 @@ def main() -> None:
                 current_time = time.time()
                 fps = 1 / (current_time - prev_time) if prev_time > 0 else 0
                 prev_time = current_time
-                
-                # Overlays
-                cv2.putText(display_frame, f"FPS: {int(fps)}", (10, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                
-                if SHOW_GESTURE_LABEL:
-                    cv2.putText(display_frame, f"Gesture: {result.gesture}", (10, 70),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+                # Validate app switch label
+                label_to_show = app_switch_label if current_time < app_switch_label_expiry else ""
+
+                draw_overlay(
+                    display_frame, 
+                    result.gesture if SHOW_GESTURE_LABEL else "", 
+                    fps, 
+                    last_volume, 
+                    last_brightness,
+                    label_to_show, 
+                    tracking_active,
+                    result.index_tip
+                )
                 
                 cv2.imshow("Air Mouse", display_frame)
                 

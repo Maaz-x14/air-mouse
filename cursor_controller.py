@@ -31,12 +31,8 @@ class CursorController:
         
     def move(self, index_tip_x: float, index_tip_y: float):
         """Move cursor based on normalized index tip coordinate."""
-        target_x = map_to_screen(index_tip_x, self.screen_width, invert=True)
-        # Note: image Y is inverted relative to screen (0 is top), so mapping doesn't need invert
-        # Wait, MediaPipe y=0 is top, screen y=0 is top. So we do not invert y.
-        # But x=1 is right in camera, which when facing user is left for the user.
-        # So it's correct to invert X.
-        target_y = map_to_screen(index_tip_y, self.screen_height, invert=False)
+        target_x = int((1 - index_tip_x) * self.screen_width)
+        target_y = int(index_tip_y * self.screen_height)
         
         if self.first_move:
             self.prev_x = target_x
